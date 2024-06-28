@@ -1,0 +1,79 @@
+---
+title: "Week 6"
+author: "Humpreet Sahans"
+date: "2024-06-28"
+output: word_document
+---
+
+```{r setup, echo=FALSE, include=FALSE}
+
+#Installing and loading the necessary packages
+#----------------------------------------------------------------------
+
+library(tidyverse)
+library(ggplot2)
+
+```
+
+```{r, echo=FALSE}
+
+#1. Reading the data from local path
+
+url <- "C:/Users/HUMPR/OneDrive/Desktop/StormEvents_details-ftp_v1.0_d1991_c20220425.csv"
+storm_data <- read.csv(url)
+```
+
+```{r, echo=FALSE}
+
+#2. Limiting dataset to required columns
+
+sub_storm <- storm_data[c(1, 7, 9, 10, 13:16)]
+
+#3. Arranging subset data by STATE name
+
+sub_storm <- arrange(sub_storm, STATE)
+
+#4. Changing State and County names to title case
+
+sub_storm$STATE <- str_to_title(sub_storm$STATE)
+sub_storm$CZ_NAME <- str_to_title(sub_storm$CZ_NAME)
+
+#5. Limiting the data to CZ_TYPE = C, then removing the column
+
+sub_storm <- sub_storm %>% 
+  filter(CZ_TYPE == "C") %>% 
+  select(-CZ_TYPE)
+
+#6. Padding State and County FIPS with 0, then combining them in a new column "FIPS"
+
+sub_storm$STATE_FIPS <- str_pad(sub_storm$STATE_FIPS, width = 3, side = "left", pad = "0")
+sub_storm$CZ_FIPS <- str_pad(sub_storm$CZ_FIPS, width = 4, side = "left", pad = "0")
+
+sub_storm <- sub_storm %>%
+  unite("FIPS", STATE_FIPS, CZ_FIPS, sep = "-")
+
+#7. Changing all column names to lower case
+
+sub_storm <- rename_all(sub_storm, tolower)
+
+#8. Getting state data from base R
+
+us_state_info <- data.frame(state=state.name, area=state.area, region=state.region)
+
+#9. Merging information - number of events per state
+
+freq_state <- data.frame(table(sub_storm$state))
+freq_state <- rename(freq_state, "state" = "Var1")
+
+merged_data <- merge(x=freq_state, y=us_state_info, by.x = "state", by.y = "state")
+
+#10. Plot
+
+storm_plot <- ggplot(merged_data, aes(x = area, y = Freq))+
+  geom_point(aes(color = region))+
+  labs(x = "Land Area in Sq. Miles",
+       y = "# of storm events in 1991")
+storm_plot
+
+```
+
